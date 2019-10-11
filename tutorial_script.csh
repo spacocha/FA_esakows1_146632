@@ -1,115 +1,149 @@
-#mkdir emp-single-end-sequences
-
-#wget \
-#  -O "sample-metadata.tsv" \
-#  "https://data.qiime2.org/2018.8/tutorials/moving-pictures/sample_metadata.tsv"
-
-#wget \
-#  -O "emp-single-end-sequences/barcodes.fastq.gz" \
-#  "https://data.qiime2.org/2018.8/tutorials/moving-pictures/emp-single-end-sequences/barcodes.fastq.gz"
-
-#wget \
-#  -O "emp-single-end-sequences/sequences.fastq.gz" \
-#  "https://data.qiime2.org/2018.8/tutorials/moving-pictures/emp-single-end-sequences/sequences.fastq.gz"
-
-#qiime tools import \
-#  --type EMPSingleEndSequences \
-#  --input-path emp-single-end-sequences \
-#  --output-path emp-single-end-sequences.qza
-
-#qiime demux emp-single \
-#  --i-seqs emp-single-end-sequences.qza \
-#  --m-barcodes-file sample-metadata.tsv \
-#  --m-barcodes-column BarcodeSequence \
-#  --o-per-sample-sequences demux.qza
-
-#qiime demux summarize \
-#  --i-data demux.qza \
-#  --o-visualization demux.qzv
+#!/bin/sh
 #
-#qiime dada2 denoise-single \
-#  --i-demultiplexed-seqs demux.qza \
-#  --p-trim-left 0 \
-#  --p-trunc-len 120 \
-#  --o-representative-sequences rep-seqs-dada2.qza \
-#  --o-table table-dada2.qza \
-#  --o-denoising-stats stats-dada2.qza
+###SBATCH --job-name=QIIME2_single
+#SBATCH --time=72:00:00
+#SBATCH --ntasks=5
+#SBATCH --cpus-per-task=1
+#SBATCH --partition=lrgmem
+#SBATCH --mem-per-cpu=20G
 
-#qiime metadata tabulate \
-#  --m-input-file stats-dada2.qza \
-#  --o-visualization stats-dada2.qzv
+echo "Starting moving pictures tutorial"
+date
 
-#mv rep-seqs-dada2.qza rep-seqs.qza
-#mv table-dada2.qza table.qza
+echo "Make and download data"
+mkdir emp-single-end-sequences
 
-#qiime feature-table summarize \
-#  --i-table table.qza \
-#  --o-visualization table.qzv \
-#  --m-sample-metadata-file sample-metadata.tsv
-#qiime feature-table tabulate-seqs \
-#  --i-data rep-seqs.qza \
-#  --o-visualization rep-seqs.qzv
+wget \
+  -O "sample-metadata.tsv" \
+  "https://data.qiime2.org/2018.8/tutorials/moving-pictures/sample_metadata.tsv"
 
-#qiime phylogeny align-to-tree-mafft-fasttree \
-#  --i-sequences rep-seqs.qza \
-#  --o-alignment aligned-rep-seqs.qza \
-#  --o-masked-alignment masked-aligned-rep-seqs.qza \
-#  --o-tree unrooted-tree.qza \
-#  --o-rooted-tree rooted-tree.qza
+wget \
+  -O "emp-single-end-sequences/barcodes.fastq.gz" \
+  "https://data.qiime2.org/2018.8/tutorials/moving-pictures/emp-single-end-sequences/barcodes.fastq.gz"
 
-#qiime diversity core-metrics-phylogenetic \
-#  --i-phylogeny rooted-tree.qza \
-#  --i-table table.qza \
-#  --p-sampling-depth 1109 \
-#  --m-metadata-file sample-metadata.tsv \
-#  --output-dir core-metrics-results
+wget \
+  -O "emp-single-end-sequences/sequences.fastq.gz" \
+  "https://data.qiime2.org/2018.8/tutorials/moving-pictures/emp-single-end-sequences/sequences.fastq.gz"
 
-#qiime diversity alpha-group-significance \
-#  --i-alpha-diversity core-metrics-results/faith_pd_vector.qza \
-#  --m-metadata-file sample-metadata.tsv \
-#  --o-visualization core-metrics-results/faith-pd-group-significance.qzv
+echo "Import fastq files into qiime2 format"
+date
 
-#qiime diversity alpha-group-significance \
-#  --i-alpha-diversity core-metrics-results/evenness_vector.qza \
-#  --m-metadata-file sample-metadata.tsv \
-#  --o-visualization core-metrics-results/evenness-group-significance.qzv
+qiime tools import \
+  --type EMPSingleEndSequences \
+  --input-path emp-single-end-sequences \
+  --output-path emp-single-end-sequences.qza
 
-#qiime diversity beta-group-significance \
-#  --i-distance-matrix core-metrics-results/unweighted_unifrac_distance_matrix.qza \
-#  --m-metadata-file sample-metadata.tsv \
-#  --m-metadata-column BodySite \
-#  --o-visualization core-metrics-results/unweighted-unifrac-body-site-significance.qzv \
-#  --p-pairwise
+echo "Demultiplex data"
+date
 
-#qiime diversity beta-group-significance \
-#  --i-distance-matrix core-metrics-results/unweighted_unifrac_distance_matrix.qza \
-#  --m-metadata-file sample-metadata.tsv \
-#  --m-metadata-column Subject \
-#  --o-visualization core-metrics-results/unweighted-unifrac-subject-group-significance.qzv \
-#  --p-pairwise
+qiime demux emp-single \
+  --i-seqs emp-single-end-sequences.qza \
+  --m-barcodes-file sample-metadata.tsv \
+  --m-barcodes-column BarcodeSequence \
+  --o-per-sample-sequences demux.qza
 
-#qiime emperor plot \
-#  --i-pcoa core-metrics-results/unweighted_unifrac_pcoa_results.qza \
-#  --m-metadata-file sample-metadata.tsv \
-#  --p-custom-axes DaysSinceExperimentStart \
-#  --o-visualization core-metrics-results/unweighted-unifrac-emperor-DaysSinceExperimentStart.qzv
+qiime demux summarize \
+  --i-data demux.qza \
+  --o-visualization demux.qzv
 
-#qiime emperor plot \
-#  --i-pcoa core-metrics-results/bray_curtis_pcoa_results.qza \
-#  --m-metadata-file sample-metadata.tsv \
-#  --p-custom-axes DaysSinceExperimentStart \
-#  --o-visualization core-metrics-results/bray-curtis-emperor-DaysSinceExperimentStart.qzv
+echo "Quality filter with DADA2"
+date
 
-#qiime diversity alpha-rarefaction \
-#  --i-table table.qza \
-#  --i-phylogeny rooted-tree.qza \
-#  --p-max-depth 4000 \
-#  --m-metadata-file sample-metadata.tsv \
-#  --o-visualization alpha-rarefaction.qzv
+qiime dada2 denoise-single \
+  --i-demultiplexed-seqs demux.qza \
+  --p-trim-left 0 \
+  --p-trunc-len 120 \
+  --o-representative-sequences rep-seqs-dada2.qza \
+  --o-table table-dada2.qza \
+  --o-denoising-stats stats-dada2.qza
 
-#wget \
-#  -O "gg-13-8-99-515-806-nb-classifier.qza" \
-#  "https://data.qiime2.org/2018.8/common/gg-13-8-99-515-806-nb-classifier.qza"
+qiime metadata tabulate \
+  --m-input-file stats-dada2.qza \
+  --o-visualization stats-dada2.qzv
+
+mv rep-seqs-dada2.qza rep-seqs.qza
+mv table-dada2.qza table.qza
+
+qiime feature-table summarize \
+  --i-table table.qza \
+  --o-visualization table.qzv \
+  --m-sample-metadata-file sample-metadata.tsv
+qiime feature-table tabulate-seqs \
+  --i-data rep-seqs.qza \
+  --o-visualization rep-seqs.qzv
+
+echo "Starting phylogenetic analysis"
+date
+qiime phylogeny align-to-tree-mafft-fasttree \
+  --i-sequences rep-seqs.qza \
+  --o-alignment aligned-rep-seqs.qza \
+  --o-masked-alignment masked-aligned-rep-seqs.qza \
+  --o-tree unrooted-tree.qza \
+  --o-rooted-tree rooted-tree.qza
+
+echo "Starting diversity analysis"
+date
+qiime diversity core-metrics-phylogenetic \
+  --i-phylogeny rooted-tree.qza \
+  --i-table table.qza \
+  --p-sampling-depth 1109 \
+  --m-metadata-file sample-metadata.tsv \
+  --output-dir core-metrics-results
+
+qiime diversity alpha-group-significance \
+  --i-alpha-diversity core-metrics-results/faith_pd_vector.qza \
+  --m-metadata-file sample-metadata.tsv \
+  --o-visualization core-metrics-results/faith-pd-group-significance.qzv
+
+qiime diversity alpha-group-significance \
+  --i-alpha-diversity core-metrics-results/evenness_vector.qza \
+  --m-metadata-file sample-metadata.tsv \
+  --o-visualization core-metrics-results/evenness-group-significance.qzv
+
+qiime diversity beta-group-significance \
+  --i-distance-matrix core-metrics-results/unweighted_unifrac_distance_matrix.qza \
+  --m-metadata-file sample-metadata.tsv \
+  --m-metadata-column BodySite \
+  --o-visualization core-metrics-results/unweighted-unifrac-body-site-significance.qzv \
+  --p-pairwise
+
+qiime diversity beta-group-significance \
+  --i-distance-matrix core-metrics-results/unweighted_unifrac_distance_matrix.qza \
+  --m-metadata-file sample-metadata.tsv \
+  --m-metadata-column Subject \
+  --o-visualization core-metrics-results/unweighted-unifrac-subject-group-significance.qzv \
+  --p-pairwise
+
+echo "Making emperor plots"
+date
+qiime emperor plot \
+  --i-pcoa core-metrics-results/unweighted_unifrac_pcoa_results.qza \
+  --m-metadata-file sample-metadata.tsv \
+  --p-custom-axes DaysSinceExperimentStart \
+  --o-visualization core-metrics-results/unweighted-unifrac-emperor-DaysSinceExperimentStart.qzv
+
+qiime emperor plot \
+  --i-pcoa core-metrics-results/bray_curtis_pcoa_results.qza \
+  --m-metadata-file sample-metadata.tsv \
+  --p-custom-axes DaysSinceExperimentStart \
+  --o-visualization core-metrics-results/bray-curtis-emperor-DaysSinceExperimentStart.qzv
+
+qiime diversity alpha-rarefaction \
+  --i-table table.qza \
+  --i-phylogeny rooted-tree.qza \
+  --p-max-depth 4000 \
+  --m-metadata-file sample-metadata.tsv \
+  --o-visualization alpha-rarefaction.qzv
+
+echo "Getting classifier"
+date
+
+wget \
+  -O "gg-13-8-99-515-806-nb-classifier.qza" \
+  "https://data.qiime2.org/2018.8/common/gg-13-8-99-515-806-nb-classifier.qza"
+
+echo "Taxonomic analysis"
+date
 
 qiime feature-classifier classify-sklearn \
   --i-classifier gg-13-8-99-515-806-nb-classifier.qza \
@@ -126,6 +160,8 @@ qiime taxa barplot \
   --m-metadata-file sample-metadata.tsv \
   --o-visualization taxa-bar-plots.qzv
 
+echo "Statistical analysis"
+date
 qiime feature-table filter-samples \
   --i-table table.qza \
   --m-metadata-file sample-metadata.tsv \
@@ -160,6 +196,7 @@ qiime composition ancom \
   --o-visualization l6-ancom-Subject.qzv
 
 
-
+echo "Finished"
+date
 
 
