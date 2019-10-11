@@ -10,20 +10,12 @@
 echo "Starting moving pictures tutorial"
 date
 
-echo "Make and download data"
+echo "Make and link data"
 mkdir emp-single-end-sequences
 
-wget \
-  -O "sample-metadata.tsv" \
-  "https://data.qiime2.org/2018.8/tutorials/moving-pictures/sample_metadata.tsv"
-
-wget \
-  -O "emp-single-end-sequences/barcodes.fastq.gz" \
-  "https://data.qiime2.org/2018.8/tutorials/moving-pictures/emp-single-end-sequences/barcodes.fastq.gz"
-
-wget \
-  -O "emp-single-end-sequences/sequences.fastq.gz" \
-  "https://data.qiime2.org/2018.8/tutorials/moving-pictures/emp-single-end-sequences/sequences.fastq.gz"
+cp /scratch/groups/t-sprehei1/FA19_Methods_dir/raw_sequence_data/esakows1_146632/esakows1_146632_ANF.txt2 sample-metadata.tsv
+ln /scratch/groups/t-sprehei1/FA19_Methods_dir/raw_sequence_data/esakows1_146632/emp_single_qiime2/barcodes.fastq.gz emp-single-end-sequences/barcodes.fastq.gz
+ln /scratch/groups/t-sprehei1/FA19_Methods_dir/raw_sequence_data/esakows1_146632/emp_single_qiime2/sequences.fastq.gz emp-single-end-sequences/sequences.fastq.gz
 
 echo "Import fastq files into qiime2 format"
 date
@@ -51,8 +43,8 @@ date
 
 qiime dada2 denoise-single \
   --i-demultiplexed-seqs demux.qza \
-  --p-trim-left 0 \
-  --p-trunc-len 120 \
+  --p-trim-left 23 \
+  --p-trunc-len 125 \
   --o-representative-sequences rep-seqs-dada2.qza \
   --o-table table-dada2.qza \
   --o-denoising-stats stats-dada2.qza
@@ -86,7 +78,7 @@ date
 qiime diversity core-metrics-phylogenetic \
   --i-phylogeny rooted-tree.qza \
   --i-table table.qza \
-  --p-sampling-depth 1109 \
+  --p-sampling-depth 5000 \
   --m-metadata-file sample-metadata.tsv \
   --output-dir core-metrics-results
 
@@ -100,38 +92,22 @@ qiime diversity alpha-group-significance \
   --m-metadata-file sample-metadata.tsv \
   --o-visualization core-metrics-results/evenness-group-significance.qzv
 
-qiime diversity beta-group-significance \
-  --i-distance-matrix core-metrics-results/unweighted_unifrac_distance_matrix.qza \
-  --m-metadata-file sample-metadata.tsv \
-  --m-metadata-column BodySite \
-  --o-visualization core-metrics-results/unweighted-unifrac-body-site-significance.qzv \
-  --p-pairwise
-
-qiime diversity beta-group-significance \
-  --i-distance-matrix core-metrics-results/unweighted_unifrac_distance_matrix.qza \
-  --m-metadata-file sample-metadata.tsv \
-  --m-metadata-column Subject \
-  --o-visualization core-metrics-results/unweighted-unifrac-subject-group-significance.qzv \
-  --p-pairwise
-
 echo "Making emperor plots"
 date
 qiime emperor plot \
   --i-pcoa core-metrics-results/unweighted_unifrac_pcoa_results.qza \
   --m-metadata-file sample-metadata.tsv \
-  --p-custom-axes DaysSinceExperimentStart \
-  --o-visualization core-metrics-results/unweighted-unifrac-emperor-DaysSinceExperimentStart.qzv
+  --o-visualization core-metrics-results/unweighted-unifrac-emperor.qzv
 
 qiime emperor plot \
   --i-pcoa core-metrics-results/bray_curtis_pcoa_results.qza \
   --m-metadata-file sample-metadata.tsv \
-  --p-custom-axes DaysSinceExperimentStart \
-  --o-visualization core-metrics-results/bray-curtis-emperor-DaysSinceExperimentStart.qzv
+  --o-visualization core-metrics-results/bray-curtis-emperor.qzv
 
 qiime diversity alpha-rarefaction \
   --i-table table.qza \
   --i-phylogeny rooted-tree.qza \
-  --p-max-depth 4000 \
+  --p-max-depth 10000 \
   --m-metadata-file sample-metadata.tsv \
   --o-visualization alpha-rarefaction.qzv
 
@@ -159,42 +135,6 @@ qiime taxa barplot \
   --i-taxonomy taxonomy.qza \
   --m-metadata-file sample-metadata.tsv \
   --o-visualization taxa-bar-plots.qzv
-
-echo "Statistical analysis"
-date
-qiime feature-table filter-samples \
-  --i-table table.qza \
-  --m-metadata-file sample-metadata.tsv \
-  --p-where "BodySite='gut'" \
-  --o-filtered-table gut-table.qza
-
-qiime composition add-pseudocount \
-  --i-table gut-table.qza \
-  --o-composition-table comp-gut-table.qza
-
-qiime composition ancom \
-  --i-table comp-gut-table.qza \
-  --m-metadata-file sample-metadata.tsv \
-  --m-metadata-column Subject \
-  --o-visualization ancom-Subject.qzv
-
-
-qiime taxa collapse \
-  --i-table gut-table.qza \
-  --i-taxonomy taxonomy.qza \
-  --p-level 6 \
-  --o-collapsed-table gut-table-l6.qza
-
-qiime composition add-pseudocount \
-  --i-table gut-table-l6.qza \
-  --o-composition-table comp-gut-table-l6.qza
-
-qiime composition ancom \
-  --i-table comp-gut-table-l6.qza \
-  --m-metadata-file sample-metadata.tsv \
-  --m-metadata-column Subject \
-  --o-visualization l6-ancom-Subject.qzv
-
 
 echo "Finished"
 date
